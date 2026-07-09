@@ -261,12 +261,19 @@ jobs:
         export PATH=$GITHUB_WORKSPACE/kernel_workspace/clang-aosp/bin:$PATH
         export KBUILD_BUILD_HOST=Github-Action
         export KBUILD_BUILD_USER=$(echo ${{ github.actor }} | tr A-Z a-z)
+        # 与本机脚本严格对齐补上的变量
+        export SUBARCH=arm64
+        export LLVM=1
+        export LLVM_IAS=1
         if [ ! -z ${{ env.KSU_EXPECTED_SIZE }} ] && [ ! -z ${{ env.KSU_EXPECTED_HASH }} ]; then
           export KSU_EXPECTED_SIZE=${{ env.KSU_EXPECTED_SIZE }}
           export KSU_EXPECTED_HASH=${{ env.KSU_EXPECTED_HASH }}
         fi
 
-        # 第一步：生成高通基础 defconfig
+        # 第一步：先动态生成 vendor/lahaina-qgki_defconfig 这个文件本身（它不是仓库里现成的，是脚本生成的）
+        scripts/gki/generate_defconfig.sh ${{ env.BASE_DEFCONFIG }}
+
+        # 然后才能用 make 读取这个刚生成的 defconfig
         make -j$(nproc --all) CC=clang O=out ARCH=${{ env.ARCH }} ${{ env.CUSTOM_CMDS }} ${{ env.EXTRA_CMDS }} ${{ env.GCC_64 }} ${{ env.GCC_32 }} ${{ env.BASE_DEFCONFIG }}
 
         # 第二步：合并 QGKI 通用配置 + xpeng 设备专属配置
